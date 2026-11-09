@@ -1,17 +1,48 @@
-# NMS Base Replicator — Phase 1 prototype
+# NMS Base Replicator
 
-A standalone, standard-library Python CLI for **replicating** the construction geometry of one planetary base into an **existing** destination planetary base. The source base is not removed or changed. No geometry transformation is performed.
+Copy construction from one No Man’s Sky planetary base into an existing destination planetary base. Replication replaces the destination’s object list with a copy of the source’s object list. The destination keeps its location and base metadata, and the source and original files stay intact.
 
-**Status:** Prototype. Tested on synthetic JSON fixtures only, **not yet tested with a real NMS gamesave or against NMSE's `.nmsbase` importer**. Do not trust these outputs with your live save without a backup and manual test.
+## Prepare your exports
 
-## Requirements
+1. Claim the destination base in-game if needed, save, and exit the game. Back up the entire save folder.
+2. In NMSE, open the destination save and use **Tools → Export JSON** to create a full gamesave export. It must already contain the destination planetary base.
+3. If the source base is in that export, reuse the same JSON. Otherwise, export its full gamesave as a separate JSON file or export the source base as a raw `.nmsbase` file.
 
-- Python 3.10 or newer (Windows, macOS, Linux)
-- Source: an NMSE / GoatFungus whole-save JSON export, or an NMSE raw `.nmsbase` file (JSON object).
-- Destination: a whole-save JSON export **already containing the destination planetary base**.
-- No pip packages required.
+## Install the Windows portable app
 
-## Usage
+1. Find **NMS Base Replicator - Windows x64 Portable.zip**. The repository’s `NMS-Base-Replicator.zip` is a separate Python source archive.
+2. Right-click the portable ZIP in File Explorer, select **Extract All**, and choose a folder you can write to.
+3. Open the extracted **NMS Base Replicator** folder and double-click **NMS Base Replicator.exe**. Keep `_internal` beside the executable. The ZIP includes the runtime, so the wizard needs no installer or separate Python installation.
+
+The portable folder also includes `Windows-Quick-Start.md` and a **Python Examples** folder with optional command-line examples.
+
+## Use the Windows wizard
+
+1. On **Choose a workflow**, select one of the following and click **Next**.
+
+   | Workflow | Files to choose |
+   | --- | --- |
+   | **One gamesave JSON** | One full JSON export containing two distinct bases. |
+   | **Two gamesave JSON files** | Separate full JSON exports for the source and destination. |
+   | **Source .nmsbase and destination gamesave JSON** | One raw source base export and one full destination JSON export. |
+
+2. On **Choose input files**, click **Browse…** for each requested file, then click **Load bases**.
+3. On **Choose bases**, select the source construction and the destination to replace. For a `.nmsbase` source, the wizard displays the source automatically. Use the names, object counts, and addresses to distinguish similarly named bases. Click **Review**.
+4. On **Review and export**, check the source count, the destination address, and how many destination objects will be replaced. Click **Choose output and export**, then save under a new `.json` filename.
+5. **Export complete** displays the two output paths. For example, choosing `replicated-base.json` creates that full destination gamesave and a matching `replicated-base.nmsbase` for the selected destination base. Both filenames must be available. The wizard protects existing files.
+
+## Import and verify in NMSE
+
+1. With the game closed and your backup available, open the destination save in NMSE. Use **Tools → Import JSON** with the generated full gamesave JSON. Review the destination base and its location before saving the result.
+2. If you use the base-only output instead, select the existing destination base in NMSE and choose **Import**. The `.nmsbase` import route still needs in-game verification.
+3. Load the game and visit the destination before committing to the result. Check the Base Computer, part placement, and connections.
+
+The Replicator copies object data as-is. It applies no translation, rotation, height correction, or terrain edits. The same geometry can appear buried or floating on different terrain. The app works on exported files and supports planetary bases. Freighter, space-station, asteroid, and corvette bases are outside scope.
+
+
+## Python command line
+
+The repository source and portable ZIP’s **Python Examples** require Python 3.10 or later and use the standard library. Run these commands from the folder containing `main.py`.
 
 From this project folder:
 
@@ -32,44 +63,8 @@ If the source is a raw `.nmsbase`, **omit** `--source-base`:
 python main.py replicate --source "C:\Saves\building.nmsbase" --destination "C:\Saves\destination.json" --destination-base "New Planet Base" --output-prefix "C:\Saves\replicated-base"
 ```
 
-Two files are created:
-
-- `replicated-base.json` — full destination save with only the selected destination base's `Objects` array replaced.
-- `replicated-base.nmsbase` — raw selected destination base record containing destination metadata and the replicated `Objects` array.
-
-Inputs are never written to. **Existing output files are never overwritten.** A same-save copy is supported: use the same JSON path for `--source` and `--destination`, selecting two *different* bases.
-
-## Recommended NMSE workflow
-
-1. In No Man's Sky, claim a fresh destination base; save and quit.
-2. Exit NMS **and Steam** to avoid Cloud Sync overwrites. Back up the **entire save folder**.
-3. Export whole-save JSON in NMSE (Tools → Export JSON) or GoatFungus; keep the original untouched.
-4. Run the Replicator and examine the new output files and counts.
-5. **Preferred first test:** In NMSE open the correct destination save and use **Tools → Import JSON** for the generated full-save `.json`; review the selected base before saving back to disk.
-6. **Alternative, not yet validated:** Select the *existing* destination planetary base in NMSE and choose **Import** (not *Import as New*) with the generated `.nmsbase`. Verify its location and name before saving. This route may need format adjustments after testing against an actual NMSE export.
-7. Load the game, visit the destination base, inspect before saving. If incorrect, exit without saving and restore backup.
-
-**Important:** Terrain may cause the replicated construction to appear underground or floating. The app preserves the source object geometry and destination metadata; it does not move, rotate, or elevate parts. It also does **not** copy terrain-edit sidecars (`.terrain.json`) or edit game saves directly.
-
-## Validation and limits
-
-- The code discovers records within `PersistentPlayerBases` arrays that contain `Name`, `GalacticAddress`, and an `Objects` list, independent of where the array sits in the save.
-- It preserves the **JSON values** of every other field and record in the destination save. Indentation, whitespace, and numeric text representation may change when exported.
-- It refuses to silently guess when duplicate base names exist: select by list number.
-- Planetary bases only. Freighter, space-station, asteroid, and corvette bases are outside scope.
-- Actual save formats can vary by game version and editor; real sample files are needed to validate field shapes and compatibility.
-- Some base computer and ownership behavior requires an in-game test. The code replaces exactly one array, matching the established manual checklist.
-
-## Tests
+For a same-save copy, pass the same JSON path to both arguments and choose two distinct bases. To run the repository tests:
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
-
-## Future steps
-
-1. Test with redacted real whole-save and `.nmsbase` exports, ideally from NMSE v1.5.12.
-2. Compare raw `.nmsbase` export with the generated file; verify NMSE Import behavior.
-3. Add a graphical interface once the core workflow is verified.
-
-No connection to NMS 3D Base Aligner is required or planned.
