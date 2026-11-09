@@ -2,11 +2,15 @@
 
 Copy construction from one No Man’s Sky planetary base into an existing destination planetary base. Replication replaces the destination’s object list with a copy of the source’s object list. The destination keeps its location and base metadata, and the source and original files stay intact.
 
+### After You Import Your Replicated Base
+If you wish to manipulate your base in 3D space, use my **[No-Mans-Sky-3D-Base-Aligner](https://github.com/ebaleytherogue/No-Mans-Sky-3D-Base-Aligner)**
+project.
+
 ## Prepare your exports
 
 1. Claim the destination base in-game if needed, save, and exit the game. Back up the entire save folder.
 2. In NMSE, open the destination save and use **Tools → Export JSON** to create a full gamesave export. It must already contain the destination planetary base.
-3. If the source base is in that export, reuse the same JSON. Otherwise, export its full gamesave as a separate JSON file or export the source base as a raw `.nmsbase` file.
+3. If the source base is in that export, reuse the same JSON. Otherwise, in some other gamesave file, export its full gamesave as a separate JSON file or export the source base as a raw `.nmsbase` file.
 
 ## Install the Windows portable app
 
