@@ -1,6 +1,12 @@
 # No-Mans-Sky-Base-Replicator on macOS and Linux
 
-**Compatibility is untested on macOS and Linux.** These instructions use the checked-in source. The repository’s Python command line covers replication. The packaged wizard is a Windows executable.
+**Compatibility is untested on macOS and Linux.** The terminal instructions below use the checked-in source. `main.py` provides `list` and `replicate`.
+
+## Archive, shelving, and restoration
+
+The wizard can archive a copy of a base, archive and remove it from an exported save, or replace its construction with one of three configurable placeholders. You can restore a stored version to its original site or to an existing planetary base. A restore to another base verifies a complete backup of the destination before replacing its construction. Keep each `.nmsbase` and its matching `.archive.json` together so the restore catalog can find the stored base. [Wizard workflow and placeholder setup](README.md#archive-shelve-and-restore)
+
+These workflows use the Tkinter wizard in `wizard.py`. Running it from source requires Python with Tkinter and a graphical desktop. The packaged executable is built for Windows, and the source wizard is unverified on macOS and Linux.
 
 ## macOS · Terminal
 
@@ -19,7 +25,7 @@ source .venv/bin/activate
 python --version
 ```
 
-The source uses the Python standard library. There are no packages to install with pip.
+The command line uses the Python standard library and needs no pip packages.
 
 Back up your save and prepare full JSON exports containing the source and destination planetary bases. Use the list command to find base numbers. For a single-save copy, pass the same JSON file as source and destination and select two distinct bases. For a raw source `.nmsbase`, pass it as `--source` and omit `--source-base`.
 
@@ -55,7 +61,7 @@ source .venv/bin/activate
 python --version
 ```
 
-The source uses the Python standard library. There are no packages to install with pip.
+The command line uses the Python standard library and needs no pip packages.
 
 Back up your save and prepare full JSON exports containing the source and destination planetary bases. Use the list command to find base numbers. For a single-save copy, pass the same JSON file as source and destination and select two distinct bases. For a raw source `.nmsbase`, pass it as `--source` and omit `--source-base`.
 
