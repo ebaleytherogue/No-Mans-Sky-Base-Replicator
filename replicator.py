@@ -16,6 +16,12 @@ class ReplicationError(ValueError):
     """An input or selection is unsafe or unsupported."""
 
 
+class OutputExistsError(ReplicationError):
+    def __init__(self, path: Path):
+        self.path = path
+        super().__init__(f'Refusing to overwrite existing file: {path}')
+
+
 @dataclass(frozen=True)
 class BaseInfo:
     path: tuple[str | int, ...]
@@ -139,14 +145,18 @@ def write_outputs(outputs: dict[Path, bytes]) -> None:
     if len(set(p.resolve() for p in targets)) != len(targets):
         raise ReplicationError('Output paths must be distinct')
     for path in targets:
-        if path.exists():
-            raise ReplicationError(f'Refusing to overwrite existing file: {path}')
+        if path.exists() or path.is_symlink():
+            raise OutputExistsError(path)
         if not path.parent.is_dir():
             raise ReplicationError(f'Output folder does not exist: {path.parent}')
     created: list[Path] = []
     try:
         for path, data in outputs.items():
-            with path.open('xb') as handle:
+            try:
+                handle = path.open('xb')
+            except FileExistsError as exc:
+                raise OutputExistsError(path) from exc
+            with handle:
                 created.append(path)
                 handle.write(data)
     except Exception:

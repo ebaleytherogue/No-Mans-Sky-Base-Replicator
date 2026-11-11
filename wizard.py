@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from archive_ui import ArchiveUI
-from replicator import (ReplicationError, find_bases, get_at, load_json,
+from replicator import (OutputExistsError, ReplicationError, find_bases, get_at, load_json,
                         parse_nmsbase, replicate, serialize_json, write_outputs)
 
 
@@ -142,10 +142,19 @@ class Wizard:
         self.navigation(self.show_bases, "Choose output and export", self.export)
 
     def export(self):
+        previous = None
+        while True:
+            previous = self.try_export(previous)
+            if previous is None:
+                return
+
+    def try_export(self, previous):
+        start = {'initialdir': str(previous.parent)} if previous else {}
         path = filedialog.asksaveasfilename(
             parent=self.root, title="Name the new gamesave and base export",
             defaultextension=".json", filetypes=[("Gamesave JSON", "*.json")],
-            initialfile="replicated-base.json", confirmoverwrite=False)
+            initialfile=previous.name if previous else "replicated-base.json",
+            confirmoverwrite=False, **start)
         if not path:
             return
         json_path = Path(path)
@@ -158,6 +167,16 @@ class Wizard:
             self.root.update_idletasks()
             save, base, _ = replicate(self.destination_save, self.target.path, self.source_record)
             write_outputs({json_path: serialize_json(save), base_path: serialize_json(base)})
+        except OutputExistsError as exc:
+            self.root.configure(cursor="")
+            kind = "companion base export" if exc.path == base_path else "gamesave JSON"
+            retry = messagebox.askretrycancel(
+                "Export name already in use",
+                f"The {kind} already exists at:\n{exc.path}\n\n"
+                "Each export creates both a .json and a matching .nmsbase file. "
+                "Choose another name, or move the existing file and retry the same name.",
+                parent=self.root)
+            return json_path if retry else None
         except (OSError, ValueError, TypeError) as exc:
             messagebox.showerror("Export failed", str(exc), parent=self.root)
             return

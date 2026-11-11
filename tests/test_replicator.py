@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from replicator import (ReplicationError, find_bases, get_at, parse_nmsbase,
+from replicator import (OutputExistsError, ReplicationError, find_bases, get_at, parse_nmsbase,
                         replicate, select_base, serialize_json, write_outputs)
 from main import main
 
@@ -73,6 +73,23 @@ class ReplicatorTests(unittest.TestCase):
         self.assertEqual(newbase['Name'], 'Destination')
         self.assertEqual(newbase['GalacticAddress'], '0xBBB')
         self.assertEqual(newbase['Objects'], source['Objects'])
+
+    def test_export_name_can_be_reused_after_both_paths_are_clear(self):
+        with tempfile.TemporaryDirectory() as folder:
+            json_path = Path(folder) / 'replicated-base.json'
+            base_path = json_path.with_suffix('.nmsbase')
+            outputs = {json_path: b'save', base_path: b'base'}
+            write_outputs(outputs)
+            json_path.unlink()
+            with self.assertRaises(OutputExistsError) as conflict:
+                write_outputs(outputs)
+            self.assertEqual(conflict.exception.path, base_path)
+            self.assertFalse(json_path.exists())
+            self.assertEqual(base_path.read_bytes(), b'base')
+            base_path.unlink()
+            write_outputs(outputs)
+            self.assertEqual(json_path.read_bytes(), b'save')
+            self.assertEqual(base_path.read_bytes(), b'base')
 
 
 if __name__ == '__main__':
