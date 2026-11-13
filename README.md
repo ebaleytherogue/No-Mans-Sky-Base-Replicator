@@ -100,3 +100,5 @@ For a same-save copy, pass the same JSON path to both arguments and choose two d
 ```powershell
 python -m unittest discover -s tests -v
 ```
+
+[AI Disclosure](AI_Disclosure.md)
