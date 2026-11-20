@@ -23,7 +23,7 @@ The destination browser starts in the most recent input directory used during th
 
 ## Install the Windows portable app
 
-1. Find the Windows x64 portable ZIP for the build you want to use. The Python source is available in this repository.
+1. Find the Windows x64 portable ZIP for the build you want to use. **Check the 'Releases' option at https://github.com/ebaleytherogue/No-Mans-Sky-Base-Replicator/releases.** The Python source is available in this repository.
 2. Right-click the portable ZIP in File Explorer, select **Extract All**, and choose a folder you can write to.
 3. Open the extracted **NMS Base Replicator** folder and double-click **NMS Base Replicator.exe**. Keep `_internal` beside the executable. The ZIP includes the runtime, so the wizard needs no installer or separate Python installation.
 
@@ -109,3 +109,5 @@ For a same-save copy, pass the same JSON path to both arguments and choose two d
 ```powershell
 python -m unittest discover -s tests -v
 ```
+
+[AI Disclosure](AI_Disclosure.md)
