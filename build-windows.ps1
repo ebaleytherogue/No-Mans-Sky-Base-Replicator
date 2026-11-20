@@ -84,7 +84,7 @@ VSVersionInfo(
     Copy-Item -LiteralPath (@("LICENSE") + $guideFiles) -Destination $bundle
     Copy-Item -LiteralPath README.md -Destination "$bundle/Windows-Quick-Start.md"
     Copy-Item -LiteralPath "Python Examples" -Destination $bundle -Recurse
-    Copy-Item -LiteralPath (@("main.py", "replicator.py", "archive.py", "archive_ui.py", "wizard.py") + $guideFiles) -Destination "$bundle/Python Examples"
+    Copy-Item -LiteralPath (@("main.py", "replicator.py", "archive.py", "archive_ui.py", "bulk_export.py", "wizard.py") + $guideFiles) -Destination "$bundle/Python Examples"
     Copy-Item -LiteralPath README.md -Destination "$bundle/Python Examples/README.md"
     Expand-Archive -LiteralPath Base_Replicator_Base_Templates.zip -DestinationPath "$bundle/Placeholder_Bases"
     & $Python -c "import sys; from pathlib import Path; from archive import discover_templates; discover_templates(Path(sys.argv[1]))" "$bundle/Placeholder_Bases"

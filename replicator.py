@@ -52,27 +52,28 @@ def _walk(value: Any, path: tuple[str | int, ...] = ()) -> Iterator[tuple[tuple[
             yield from _walk(child, path + (index,))
 
 
+def iter_base_records(save: Any) -> Iterator[tuple[tuple[str | int, ...], Any]]:
+    for path, node in _walk(save):
+        bases = node.get('PersistentPlayerBases')
+        if isinstance(bases, list):
+            for index, base in enumerate(bases):
+                yield path + ('PersistentPlayerBases', index), base
+
+
 def find_bases(save: Any) -> list[BaseInfo]:
     """Find planetary base records inside canonical PersistentPlayerBases arrays.
 
     This intentionally excludes unrelated Objects arrays and freighter bases.
     """
     found: list[BaseInfo] = []
-    for path, node in _walk(save):
-        if not isinstance(node, dict):
+    for path, base in iter_base_records(save):
+        if not isinstance(base, dict) or not isinstance(base.get('Objects'), list):
             continue
-        bases = node.get('PersistentPlayerBases')
-        if not isinstance(bases, list):
+        # Only conventional planetary records have a galactic address.
+        if 'GalacticAddress' not in base:
             continue
-        for idx, base in enumerate(bases):
-            if not isinstance(base, dict) or not isinstance(base.get('Objects'), list):
-                continue
-            # Only conventional planetary records have a galactic address.
-            if 'GalacticAddress' not in base:
-                continue
-            name = str(base.get('Name') or f'(unnamed #{idx})')
-            found.append(BaseInfo(path + ('PersistentPlayerBases', idx), name,
-                                  len(base['Objects']), str(base.get('GalacticAddress', ''))))
+        name = str(base.get('Name') or f'(unnamed #{path[-1]})')
+        found.append(BaseInfo(path, name, len(base['Objects']), str(base.get('GalacticAddress', ''))))
     return found
 
 
