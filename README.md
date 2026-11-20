@@ -6,6 +6,15 @@ Copy construction between No Man’s Sky planetary bases, archive complete base 
 If you wish to manipulate your base in 3D space, use my **[No-Mans-Sky-3D-Base-Aligner](https://github.com/ebaleytherogue/No-Mans-Sky-3D-Base-Aligner)**
 project.
 
+## Bulk base export
+
+Open **Bulk Base Export** and choose a full NMSE gamesave JSON export. The same commands are available on the loaded base selection screens. Both commands use the full gamesave and process bases in their saved order.
+
+- **Export All Bases as .nmsbase** opens a parent-folder browser, then lets you accept or edit the proposed `Exported_Bases_ALL_YYYY-MM-DD_HHMM` folder name.
+- **Export Other Players' Bases as .nmsbase** opens a parent-folder browser. It excludes bases confirmed as yours and creates sibling `Exported_Bases_OTHER_PLAYERS_YYYY-MM-DD_HHMM` and `Exported_Bases_OWNERSHIP_UNKNOWN_YYYY-MM-DD_HHMM` folders for categories with qualifying records.
+
+The destination browser starts in the most recent input directory used during the current session, when it is available. Folder timestamps use local time. Repeated folder or base names receive numbered suffixes. Each created folder includes an `Export_Manifest.md` with the source, ownership evidence, and per-base outcomes.
+
 ## Prepare your exports
 
 1. Claim the destination base in-game if needed, save, and exit the game. Back up the entire save folder.

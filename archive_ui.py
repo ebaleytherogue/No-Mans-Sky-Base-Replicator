@@ -76,6 +76,7 @@ class ArchiveUI:
             if path.suffix.casefold() != '.json':
                 raise ReplicationError('Choose a gamesave .json export.')
             self.save = load_json(path)
+            self.wizard.remember_loaded_path(self.wizard.destination, path)
             self.source = path
             self.bases = archive_candidates(self.save)
             self.selected = set()
@@ -168,6 +169,8 @@ class ArchiveUI:
         ttk.Button(buttons, text='Clear Current Selections', command=clear).pack(side='left', padx=8)
         pattern.trace_add('write', update)
         update()
+        self.wizard.bulk_export_buttons(lambda mode: self.wizard.run_bulk_export(
+            self.save, self.source, mode, self.select_bases))
         self.wizard.navigation(self.open, 'Choose action', self.choose_action)
 
     def choose_action(self):

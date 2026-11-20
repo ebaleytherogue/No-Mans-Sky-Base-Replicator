@@ -1,9 +1,11 @@
 """Windows wizard for NMS Base Replicator."""
 from pathlib import Path
+from datetime import datetime
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from archive_ui import ArchiveUI
+from bulk_export import ALL, OTHER, default_folder, export_bases, validate_folder_name
 from replicator import (OutputExistsError, ReplicationError, find_bases, get_at, load_json,
                         parse_nmsbase, replicate, serialize_json, write_outputs)
 
@@ -25,6 +27,8 @@ class Wizard:
         self.mode = tk.IntVar(value=0)
         self.source = tk.StringVar()
         self.destination = tk.StringVar()
+        self.last_load_directory = None
+        self.browsed_paths = {}
         self.archive = ArchiveUI(self)
         self.show_workflow()
 
@@ -49,6 +53,8 @@ class Wizard:
                 anchor="w", pady=5)
         ttk.Button(self.body, text="Archive, Shelve, and Restore", command=self.archive.open).pack(
             anchor="w", pady=(16, 0))
+        ttk.Button(self.body, text="Bulk Base Export", command=self.show_bulk_export).pack(
+            anchor="w", pady=(8, 0))
         self.navigation(None, "Next", self.show_files)
 
     def file_row(self, label, variable, extension):
@@ -61,8 +67,90 @@ class Wizard:
             path = filedialog.askopenfilename(parent=self.root, filetypes=[(label, f"*{extension}")])
             if path:
                 variable.set(path)
+                self.last_load_directory = Path(path).parent
+                self.browsed_paths[str(variable)] = Path(path)
 
         ttk.Button(row, text="Browse…", command=browse).pack(side="right", padx=(8, 0))
+
+    def remember_loaded_path(self, variable, path):
+        if self.browsed_paths.get(str(variable)) != path:
+            self.last_load_directory = path.parent
+            self.browsed_paths[str(variable)] = path
+
+    def show_bulk_export(self):
+        self.page("Bulk Base Export", "Choose a full NMSE gamesave JSON export.")
+        self.file_row("Gamesave JSON", self.destination, ".json")
+        self.bulk_export_buttons(self.load_bulk_export)
+        ttk.Button(self.body, text="Back", command=self.show_workflow).pack(side="bottom", anchor="w")
+
+    def bulk_export_buttons(self, command):
+        row = ttk.Frame(self.body)
+        row.pack(fill="x", pady=(12, 0))
+        for mode, label in ((ALL, "Export All Bases as .nmsbase"),
+                            (OTHER, "Export Other Players' Bases as .nmsbase")):
+            ttk.Button(row, text=label, command=lambda mode=mode: command(mode)).pack(side="left", padx=(0, 8))
+
+    def load_bulk_export(self, mode):
+        try:
+            source = Path(self.destination.get().strip()).resolve()
+            if source.suffix.casefold() != ".json":
+                raise ReplicationError("Choose a gamesave .json export.")
+            save = load_json(source)
+        except (OSError, ValueError) as exc:
+            messagebox.showerror("Could not load gamesave", str(exc), parent=self.root)
+            return
+        self.remember_loaded_path(self.destination, source)
+        self.run_bulk_export(save, source, mode, self.show_bulk_export)
+
+    def run_bulk_export(self, save, source, mode, back):
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+        initial = next(path for path in (self.last_load_directory, source.parent,
+                                        Path.home() / "Documents", Path.home(), Path.cwd())
+                       if path is not None and path.is_dir())
+        parent = filedialog.askdirectory(parent=self.root, initialdir=str(initial), mustexist=True,
+                                         title="Choose a parent folder for the base exports")
+        if not parent:
+            return
+        name = None
+        if mode == ALL:
+            name = default_folder(ALL, timestamp)
+            while True:
+                name = simpledialog.askstring("Export folder name", f"Create a folder under {parent}",
+                                              initialvalue=name, parent=self.root)
+                if name is None:
+                    return
+                try:
+                    validate_folder_name(name)
+                except ReplicationError as exc:
+                    messagebox.showerror("Invalid folder name", str(exc), parent=self.root)
+                else:
+                    break
+        self.page("Exporting bases", "Preparing the base list…")
+        progress = ttk.Label(self.body)
+        progress.pack(anchor="w")
+
+        def update(index, total):
+            progress.configure(text=f"Processing base {index} of {total}")
+            self.root.update_idletasks()
+
+        self.root.configure(cursor="watch")
+        self.root.update_idletasks()
+        try:
+            result = export_bases(save, source, Path(parent), mode, timestamp, name, update)
+        finally:
+            self.root.configure(cursor="")
+        counts = result.counts
+        self.page("Bulk export finished", f"Considered {len(result.rows)}  |  Exported {counts['Exported']}  |  "
+                  f"Skipped {counts['Skipped']}  |  Failed {counts['Failed']}")
+        lines = [str(folder) for folder in result.folders.values()]
+        lines.extend(f"Manifest: {path}" for path in result.manifests)
+        lines.extend(f"Manifest could not be written: {error}" for error in result.manifest_errors)
+        lines.extend(dict.fromkeys(row.detail for row in result.rows
+                                   if row.status == "Failed" and row.category not in result.folders))
+        if not result.folders:
+            lines.append("No export folders were created.")
+        ttk.Label(self.body, text="\n".join(lines), wraplength=630, justify="left").pack(anchor="w")
+        self.navigation(back, "Start again", self.restart)
 
     def show_files(self):
         self.page("2 of 4  |  Choose input files", WORKFLOWS[self.mode.get()])
@@ -95,6 +183,9 @@ class Wizard:
                 raise ReplicationError("The gamesave must contain two distinct bases.")
             if mode == 2:
                 self.source_record = parse_nmsbase(self.source_data)
+            self.remember_loaded_path(self.destination, self.destination_path)
+            if mode:
+                self.remember_loaded_path(self.source, self.source_path)
             self.show_bases()
         except (OSError, ValueError) as exc:
             messagebox.showerror("Could not load inputs", str(exc), parent=self.root)
@@ -115,6 +206,8 @@ class Wizard:
         else:
             self.source_picker = self.base_picker("Source base", self.source_bases)
         self.target_picker = self.base_picker("Destination base", self.destination_bases)
+        self.bulk_export_buttons(lambda mode: self.run_bulk_export(
+            self.destination_save, self.destination_path, mode, self.show_bases))
         self.navigation(self.show_files, "Review", self.review)
 
     def review(self):
